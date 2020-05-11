@@ -34,6 +34,13 @@ namespace Xamarin.Bundler {
 		Trace = 1,
 	}
 
+	public enum RegistrarMode {
+		Default,
+		Dynamic,
+		PartialStatic,
+		Static,
+	}
+
 	public partial class Application
 	{
 		public Cache Cache;
@@ -70,6 +77,7 @@ namespace Xamarin.Bundler {
 			set { is_default_marshal_managed_exception_mode = value; }
 		}
 		public List<string> RootAssemblies = new List<string> ();
+		public List<string> References = new List<string> ();
 		public List<Application> SharedCodeApps = new List<Application> (); // List of appexes we're sharing code with.
 		public string RegistrarOutputLibrary;
 
@@ -401,7 +409,6 @@ namespace Xamarin.Bundler {
 			var RootAssembly = RootAssemblies [0];
 			var resolvedAssemblies = new Dictionary<string, AssemblyDefinition> ();
 			var resolver = new PlatformResolver () {
-				FrameworkDirectory = Driver.GetPlatformFrameworkDirectory (this),
 				RootDirectory = Path.GetDirectoryName (RootAssembly),
 #if MMP
 				CommandLineAssemblies = RootAssemblies,
@@ -418,7 +425,11 @@ namespace Xamarin.Bundler {
 
 			var ps = new ReaderParameters ();
 			ps.AssemblyResolver = resolver;
-			resolvedAssemblies.Add ("mscorlib", ps.AssemblyResolver.Resolve (AssemblyNameReference.Parse ("mscorlib"), new ReaderParameters ()));
+			foreach (var reference in References) {
+				var r = resolver.Load (reference);
+				if (r == null)
+					throw ErrorHelper.CreateError (2002, Errors.MT2002, reference);
+			}
 
 			var productAssembly = Driver.GetProductAssembly (this);
 			bool foundProductAssembly = false;
@@ -453,7 +464,13 @@ namespace Xamarin.Bundler {
 				throw ErrorHelper.CreateError (131, Errors.MX0131, productAssembly, string.Join ("', '", RootAssemblies.ToArray ()));
 
 #if MONOTOUCH
-			BuildTarget = BuildTarget.Simulator;
+			if (SelectAbis (Abis, Abi.SimulatorArchMask).Count > 0) {
+				BuildTarget = BuildTarget.Simulator;
+			} else if (SelectAbis (Abis, Abi.DeviceArchMask).Count > 0) {
+				BuildTarget = BuildTarget.Device;
+			} else {
+				throw ErrorHelper.CreateError (99, Errors.MX0099, "No valid ABI");
+			}
 #endif
 			var registrar = new Registrar.StaticRegistrar (this);
 			if (RootAssemblies.Count == 1)

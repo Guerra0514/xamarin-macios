@@ -272,6 +272,10 @@ namespace Xamarin.Bundler {
 
 		public const bool IsXAMCORE_4_0 = false;
 
+		public static bool IsDotNet {
+			get { return TargetFramework.IsDotNet; }
+		}
+
 		static TargetFramework targetFramework;
 
 		public static TargetFramework TargetFramework {
@@ -319,7 +323,7 @@ namespace Xamarin.Bundler {
 				bool force45From40UnifiedSystemFull = false;
 
 				// Detect Classic usage, and show an error.
-				if (references.Any ((v) => Path.GetFileName (v) == "XamMac.dll"))
+				if (App.References.Any ((v) => Path.GetFileName (v) == "XamMac.dll"))
 					throw ErrorHelper.CreateError (143, Errors.MM0143 /* Projects using the Classic API are not supported anymore. Please migrate the project to the Unified API. */);
 
 				if (targetFramework == TargetFramework.Net_2_0
@@ -348,7 +352,7 @@ namespace Xamarin.Bundler {
 				} else {
 					// This is a total hack. Instead of passing in an argument, we walk the references looking for
 					// the "right" Xamarin.Mac and assume you are doing something
-					foreach (var asm in references) {
+					foreach (var asm in App.References) {
 						if (asm.EndsWith ("reference/full/Xamarin.Mac.dll", StringComparison.Ordinal)) {
 							force45From40UnifiedSystemFull = TargetFramework == TargetFramework.Net_4_0;
 							TargetFramework = TargetFramework.Xamarin_Mac_4_5_System;
@@ -846,6 +850,23 @@ namespace Xamarin.Bundler {
 			}
 		}
 
+		// This is the directory where the libxamarin*.[a|dylib] and libxammac*.[a|dylib] libraries are
+		public static string GetXamarinLibraryDirectory (Application app)
+		{
+			return GetProductSdkLibDirectory (app);
+		}
+
+		// This is the directory where the Xamarin[-debug].framework frameworks are
+		public static string GetXamarinFrameworkDirectory (Application app)
+		{
+			return GetProductFrameworksDirectory (app);
+		}
+
+		public static string GetProductFrameworksDirectory (Application app)
+		{
+			return Path.Combine (GetProductSdkDirectory (app), "Frameworks");
+		}
+
 		// This is the directory where the platform assembly (Xamarin.*.dll) can be found
 		public static string GetPlatformFrameworkDirectory (Application app)
 		{
@@ -1259,6 +1280,22 @@ namespace Xamarin.Bundler {
 		public static void RunStrip (IList<string> options)
 		{
 			RunXcodeTool ("strip", options);
+		}
+
+		public static string CorlibName {
+			get {
+				if (IsDotNet)
+					return "System.Private.CoreLib";
+				return "mscorlib";
+			}
+		}
+
+		public static Frameworks GetFrameworks (Application app)
+		{
+			var rv = Frameworks.GetFrameworks (app.Platform, app.IsSimulatorBuild);
+			if (rv == null)
+				throw ErrorHelper.CreateError (71, Errors.MX0071, app.Platform, PRODUCT);
+			return rv;
 		}
 	}
 }

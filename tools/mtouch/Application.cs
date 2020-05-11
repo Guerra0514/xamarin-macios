@@ -42,12 +42,6 @@ namespace Xamarin.Bundler {
 		}
 	}
 
-	public enum RegistrarMode {
-		Default,
-		Dynamic,
-		Static,
-	}
-
 	public enum BuildTarget {
 		Simulator,
 		Device,
@@ -127,7 +121,6 @@ namespace Xamarin.Bundler {
 
 		public bool LinkAway = true;
 		public bool LinkerDumpDependencies { get; set; }
-		public List<string> References = new List<string> ();
 		
 		public bool? BuildDSym;
 
@@ -1286,7 +1279,7 @@ namespace Xamarin.Bundler {
 				target.TargetDirectory = AppDirectory;
 				target.AppTargetDirectory = IsSimulatorBuild ? AppDirectory : Path.Combine (AppDirectory, Is64Build ? ".monotouch-64" : ".monotouch-32");
 				target.ArchDirectory = Cache.Location;
-				target.Resolver.ArchDirectory = Path.Combine (FrameworkDirectory, "..", "..", Is32Build ? "32bits" : "64bits");
+				target.Resolver.ArchDirectory = Driver.GetArchDirectory (this, Is64Build);
 				target.Abis = abis;
 
 				Targets.Add (target);
@@ -1889,11 +1882,11 @@ namespace Xamarin.Bundler {
 		{
 			switch (build_target) {
 			case AssemblyBuildTarget.StaticObject:
-				return Path.Combine (Driver.GetProductSdkLibDirectory (this), EnableDebug ? "libxamarin-debug.a" : "libxamarin.a");
+				return Path.Combine (Driver.GetXamarinLibraryDirectory (this), EnableDebug ? "libxamarin-debug.a" : "libxamarin.a");
 			case AssemblyBuildTarget.DynamicLibrary:
-				return Path.Combine (Driver.GetProductSdkLibDirectory (this), EnableDebug ? "libxamarin-debug.dylib" : "libxamarin.dylib");
+				return Path.Combine (Driver.GetXamarinLibraryDirectory (this), EnableDebug ? "libxamarin-debug.dylib" : "libxamarin.dylib");
 			case AssemblyBuildTarget.Framework:
-				return Path.Combine (Driver.GetProductSdkFrameworksDirectory (this), EnableDebug ? "Xamarin-debug.framework" : "Xamarin.framework");
+				return Path.Combine (Driver.GetXamarinFrameworkDirectory (this), EnableDebug ? "Xamarin-debug.framework" : "Xamarin.framework");
 			default:
 				throw ErrorHelper.CreateError (100, Errors.MT0100, build_target);
 			}

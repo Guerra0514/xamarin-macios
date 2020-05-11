@@ -577,7 +577,6 @@ namespace Xamarin.Bundler
 				ExtraDefinitions = App.Definitions,
 				Device = App.IsDeviceBuild,
 				DebugBuild = App.EnableDebug,
-				IsDualBuild = App.IsDualBuild,
 				DumpDependencies = App.LinkerDumpDependencies,
 				RuntimeOptions = App.RuntimeOptions,
 				MarshalNativeExceptionsState = MarshalNativeExceptionsState,
@@ -1570,8 +1569,7 @@ namespace Xamarin.Bundler
 				case AssemblyBuildTarget.DynamicLibrary:
 					libprofiler = Path.Combine (libmonodir, "libmono-profiler-log.dylib");
 					linker_flags.AddLinkWith (libprofiler);
-					if (App.HasFrameworksDirectory)
-						AddToBundle (libprofiler);
+					AddToBundle (libprofiler);
 					break;
 				case AssemblyBuildTarget.StaticObject:
 					libprofiler = Path.Combine (libmonodir, "libmono-profiler-log.a");

@@ -38,12 +38,7 @@ namespace ObjCRuntime {
 	public static partial class Runtime {
 #if !COREBUILD
 		internal const string ProductName = "Xamarin.Mac";
-		internal const string CompatNamespace = "MonoMac";
-#if XAMCORE_2_0
 		internal const string AssemblyName = "Xamarin.Mac.dll";
-#else
-		internal const string AssemblyName = "XamMac.dll";
-#endif
 
 		public static string FrameworksPath {
 			get; set;
@@ -177,7 +172,7 @@ namespace ObjCRuntime {
 		[Preserve]
 		static IntPtr GetNullableType (IntPtr type)
 		{
-			return ObjectWrapper.Convert (Registrar.GetNullableType ((Type) ObjectWrapper.Convert (type)));
+			return AllocGCHandle (Registrar.GetNullableType ((Type) GetGCHandleTarget (type)));
 		}
 #endif // !COREBUILD
 	}

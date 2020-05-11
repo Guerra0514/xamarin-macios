@@ -205,23 +205,7 @@ namespace Registrar {
 		}
 	}
 
-	interface IStaticRegistrar
-	{
-		bool HasAttribute (ICustomAttributeProvider provider, string @namespace, string name, bool inherits = false);
-		bool HasProtocolAttribute (TypeReference type);
-		RegisterAttribute GetRegisterAttribute (TypeReference type);
-		ProtocolAttribute GetProtocolAttribute (TypeReference type);
-		string GetExportedTypeName (TypeReference type, RegisterAttribute register_attribute);
-		void GenerateSingleAssembly (IEnumerable<AssemblyDefinition> assemblies, string header_path, string source_path, string assembly);
-		void Generate (IEnumerable<AssemblyDefinition> assemblies, string header_path, string source_path);
-		string ComputeSignature (TypeReference DeclaringType, MethodDefinition Method, Registrar.ObjCMember member = null, bool isCategoryInstance = false, bool isBlockSignature = false);
-		string ComputeSignature (TypeReference declaring_type, bool is_ctor, TypeReference return_type, TypeReference [] parameters, MethodDefinition mi = null, Registrar.ObjCMember member = null, bool isCategoryInstance = false, bool isBlockSignature = false);
-		bool MapProtocolMember (MethodDefinition method, out MethodDefinition extensionMethod);
-		string PlatformAssembly { get; }
-		Dictionary<ICustomAttribute, MethodDefinition> ProtocolMemberMethodMap { get; }
-	}
-
-	class StaticRegistrar : Registrar, IStaticRegistrar
+	class StaticRegistrar : Registrar
 	{
 		Dictionary<ICustomAttribute, MethodDefinition> protocol_member_method_map;
 
@@ -994,20 +978,21 @@ namespace Registrar {
 				return system_void;
 			
 			// find corlib
+			var corlib_name = Driver.CorlibName;
 			AssemblyDefinition corlib = null;
 			AssemblyDefinition first = null;
 
 			foreach (var assembly in input_assemblies) {
 				if (first == null)
 					first = assembly;
-				if (assembly.Name.Name == "mscorlib") {
+				if (assembly.Name.Name == corlib_name) {
 					corlib = assembly;
 					break;
 				}
 			}
 
 			if (corlib == null) {
-				corlib = first.MainModule.AssemblyResolver.Resolve (AssemblyNameReference.Parse ("mscorlib"), new ReaderParameters ());
+				corlib = first.MainModule.AssemblyResolver.Resolve (AssemblyNameReference.Parse (corlib_name), new ReaderParameters ());
 			}
 			foreach (var type in corlib.MainModule.Types) {
 				if (type.Namespace == "System" && type.Name == "Void")
@@ -3906,7 +3891,7 @@ namespace Registrar {
 
 			// no locking should be required here, it doesn't matter if we overwrite the field (it'll be the same value).
 			body.WriteLine ("if (!managed_method) {");
-			body.Write ("MonoReflectionMethod *reflection_method = ");
+			body.Write ("GCHandle reflection_method_handle = ");
 			if (isGeneric)
 				body.Write ("xamarin_get_generic_method_from_token (mthis, ");
 			else
@@ -3917,6 +3902,8 @@ namespace Registrar {
 			} else {
 				body.WriteLine ("0x{0:X}, &exception_gchandle);", token_ref);
 			}
+			body.Write ("MonoReflectionMethod *reflection_method = (MonoReflectionMethod *) xamarin_gchandle_unwrap (reflection_method_handle);");
+
 			body.WriteLine ("if (exception_gchandle != 0) goto exception_handling;");
 			body.WriteLine ("managed_method = xamarin_get_reflection_method_method (reflection_method);");
 			if (merge_bodies)

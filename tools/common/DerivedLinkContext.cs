@@ -6,13 +6,14 @@ using Mono.Linker;
 using Mono.Collections.Generic;
 
 using Registrar;
+using Mono.Tuner;
 using Xamarin.Bundler;
 
 namespace Xamarin.Tuner
 {
 	public class DerivedLinkContext : LinkContext
 	{
-		internal IStaticRegistrar StaticRegistrar;
+		internal StaticRegistrar StaticRegistrar;
 		internal Target Target;
 		Symbols required_symbols;
 
@@ -46,6 +47,18 @@ namespace Xamarin.Tuner
 			}
 		}
 
+		AssemblyDefinition corlib;
+		public AssemblyDefinition Corlib {
+			get {
+				if (corlib == null) {
+					var name = Driver.CorlibName;
+					corlib = this.GetAssembly (name);
+					if (corlib == null)
+						throw ErrorHelper.CreateError (2111, Errors.MX2111 /* Can not find the corlib assembly '{0}' in the list of loaded assemblies. */, name);
+				}
+				return corlib;
+			}
+		}
 		public HashSet<TypeDefinition> CachedIsNSObject {
 			get { return cached_isnsobject; }
 			set { cached_isnsobject = value; }

@@ -5,12 +5,13 @@ using System.Diagnostics;
 using System.Threading.Tasks;
 using Microsoft.DotNet.XHarness.iOS.Shared;
 using Microsoft.DotNet.XHarness.iOS.Shared.Execution;
+using Microsoft.DotNet.XHarness.iOS.Shared.Listeners;
 using Microsoft.DotNet.XHarness.iOS.Shared.Logging;
 using Microsoft.DotNet.XHarness.iOS.Shared.Utilities;
 
 namespace Xharness.TestTasks {
 	public class RunTest {
-		public IProcessManager ProcessManager { get; }
+		public IProcessManager ProcessManager { get; private set; }
 		public IBuildToolTask BuildTask { get; private set; }
 		IResultParser ResultParser { get; } = new XmlResultParser ();
 
@@ -66,16 +67,18 @@ namespace Xharness.TestTasks {
 				testTask.FailureMessage = BuildTask.FailureMessage;
 				if (!string.IsNullOrEmpty (BuildTask.KnownFailure))
 					testTask.KnownFailure = BuildTask.KnownFailure;
-				if (generateXmlFailures)
+				if (generateXmlFailures) {
+					var logReader = BuildTask.BuildLog.GetReader ();
 					ResultParser.GenerateFailure (
-						logs: testTask.Logs, 
+						logs: testTask.Logs,
 						source: "build",
 						appName: testTask.TestName,
 						variation: testTask.Variation,
 						title: $"App Build {testTask.TestName} {testTask.Variation}",
 						message: $"App could not be built {testTask.FailureMessage}.",
-						stderrPath: BuildTask.BuildLog.FullPath,
+						stderrReader: logReader,
 						jargon: xmlResultJargon);
+				}
 			} else {
 				testTask.ExecutionResult = TestExecutingResult.Built;
 			}
